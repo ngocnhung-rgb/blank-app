@@ -93,7 +93,6 @@ def giai_simplex_hai_pha_tong_quat(c_new, A_mat, b_list, slack_rows, header_vars
     basis = [-1] * num_constraints
 
     # Xác định cơ sở xuất phát và cấu trúc biến giả R
-    art_idx = len(header_vars)
     slack_cnt = 0
     for i, sign in enumerate(slack_rows):
         if sign == "<=":
@@ -105,12 +104,12 @@ def giai_simplex_hai_pha_tong_quat(c_new, A_mat, b_list, slack_rows, header_vars
                     slack_cnt += 1
                     break
         else:
+            art_idx = len(header_vars) + len(art_vars_indices)
             tableau[i, art_idx] = 1
             header_vars_with_art.append(f"R_{len(art_vars_indices) + 1}")
             art_vars_indices.append(art_idx)
             basis[i] = art_idx
             tableau[-1, :] -= tableau[i, :]  # Triệt tiêu hệ số cơ sở tại dòng g
-            art_idx += 1
 
     all_logs = []
     all_tables = []
@@ -374,9 +373,10 @@ for i, sign in enumerate(slack_rows):
 
 st.markdown("---")
 if st.button("BẮT ĐẦU GIẢI BÀI TOÁN", type="primary"):
+    # ĐÃ SỬA: Loại bỏ dấu trừ trước c_new_with_slack vì logic đổi dấu đã được xử lý ở trên
     res_tableau, logs, all_tables, final_headers, final_basis = (
         giai_simplex_hai_pha_tong_quat(
-            -c_new_with_slack,
+            c_new_with_slack,
             A_mat,
             np.array(b_list),
             slack_rows,
@@ -436,9 +436,8 @@ if st.button("BẮT ĐẦU GIẢI BÀI TOÁN", type="primary"):
             with cols_res[i]:
                 st.metric(label=f"Biến x_{i+1}", value=f"{x_optimal[i]:.4f}")
 
-        f_opt = (
-            res_tableau[-1, -1] if target_type == "min" else -res_tableau[-1, -1]
-        )
+        # ĐÃ SỬA: Đồng bộ lại cách đọc kết quả từ dòng cuối cùng của bảng tối ưu thu được
+        f_opt = res_tableau[-1, -1] if target_type == "min" else -res_tableau[-1, -1]
         st.markdown("---")
         st.metric(
             label=f"Giá trị tối ưu cực trị f(x) [{target_type.upper()}]",
